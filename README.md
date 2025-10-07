@@ -2,6 +2,10 @@
 
 A real-time voice AI assistant built with LiveKit, featuring speech-to-text, natural language processing, and text-to-speech capabilities.
 
+## Video Demo
+
+🎥 [Watch the Live Demo on YouTube](https://youtu.be/iz8SGJsNLGY?si=OYGjno6eImQaOC3A)
+
 ## Features
 
 - 🎤 Real-time voice communication using LiveKit
@@ -178,7 +182,7 @@ Keep responses natural and conversational."""
 
 ## License
 
-This project is for educational and development purposes. Ensure compliance with API providers' terms of service.
+MIT License - This project is completely free and open source. Anyone can use, modify, distribute, and commercialize this software for any purpose without restrictions.
 
 ## Support
 
