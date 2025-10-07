@@ -1,4 +1,4 @@
-# LiveKit Voice AI Assistant
+# AI Voice Assistant
 
 A real-time voice AI assistant built with LiveKit, featuring speech-to-text, natural language processing, and text-to-speech capabilities.
 
