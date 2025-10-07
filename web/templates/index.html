@@ -23,7 +23,6 @@
 <script type="module">
 import * as LiveKit from 'https://cdn.jsdelivr.net/npm/livekit-client@2.7.2/+esm';
 
-// Make LiveKit available globally
 window.LiveKit = LiveKit;
 
 const startBtn = document.getElementById('startBtn');
@@ -75,17 +74,14 @@ startBtn.onclick = async () => {
       disconnectOnPageLeave: false
     });
 
-    // Add connection state listener
     room.on('connectionStateChanged', (state) => {
       log(`Connection state: ${state}`);
     });
 
-    // Add connection quality listener
     room.on('connectionQualityChanged', (quality, participant) => {
       log(`Connection quality: ${quality} for ${participant.identity}`);
     });
 
-    // Add disconnect listener
     room.on('disconnected', (reason) => {
       log(`Disconnected: ${reason}`);
       status.textContent = `Disconnected: ${reason}`;
@@ -93,7 +89,6 @@ startBtn.onclick = async () => {
       muteBtn.disabled = true;
     });
 
-    // Add participant listeners
     room.on('participantConnected', (participant) => {
       log(`✓ Participant joined: ${participant.identity}`);
     });
@@ -109,19 +104,17 @@ startBtn.onclick = async () => {
     log(`Local participant: ${room.localParticipant.identity}`);
     status.textContent = "Connected – enabling microphone…";
 
-    // Enable microphone
     await room.localParticipant.setMicrophoneEnabled(true);
     log("✓ Microphone enabled");
     
     status.textContent = "✓ Ready – speak now!";
     muteBtn.disabled = false;
 
-    // Subscribe to remote audio tracks
     room.on('trackSubscribed', (track, publication, participant) => {
       log(`✓ Track subscribed: ${track.kind} from ${participant.identity}`);
       if (track.kind === 'audio') {
         const audio = track.attach();
-        audio.volume = 1.0; // Max volume
+        audio.volume = 1.0; 
         log(`Audio element created, volume: ${audio.volume}`);
         audio.play()
           .then(() => {
@@ -130,7 +123,6 @@ startBtn.onclick = async () => {
           })
           .catch(e => log(`❌ Audio play error: ${e.message}`));
         
-        // Monitor audio playback
         audio.onplay = () => log("🔊 Audio started playing");
         audio.onpause = () => log("⏸️ Audio paused");
         audio.onerror = (e) => log(`❌ Audio error: ${e}`);

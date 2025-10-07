@@ -9,31 +9,25 @@ from livekit import api
 
 load_dotenv(".env")
 app = Flask(__name__)
-
-# ---------- config ----------
+ 
 LIVEKIT_URL = os.getenv("LIVEKIT_URL")
 LIVEKIT_KEY = os.getenv("LIVEKIT_API_KEY")
 LIVEKIT_SECRET = os.getenv("LIVEKIT_API_SECRET")
 HTTP_URL = LIVEKIT_URL.replace("wss://", "https://")
 
-# ---------- UI ----------
 @app.route("/")
 def home():
     return render_template("index.html", lk_url=LIVEKIT_URL)
-
-# ---------- token ----------
+ 
 @app.route("/token", methods=["POST"])
 def token():
     room = request.json.get("room", "default")
     identity = request.json.get("identity", "user-" + datetime.datetime.utcnow().strftime("%H%M%S"))
 
-    # Create AccessToken with API credentials
     token = AccessToken(api_key=LIVEKIT_KEY, api_secret=LIVEKIT_SECRET)
     
-    # Set identity using the builder pattern
     token = token.with_identity(identity)
     
-    # Create and add video grants
     video_grants = VideoGrants(
         room_join=True,
         room=room,
@@ -44,7 +38,6 @@ def token():
 
     return jsonify({"token": token.to_jwt()})
 
-# ---------- pre-create room ----------
 async def create_room_async():
     """Async function to create the room using LiveKitAPI."""
     try:
@@ -64,7 +57,6 @@ async def create_room_async():
         print(f"Room creation note: {e}")
         return None
 
-# Run the async room creation on startup
 try:
     loop = asyncio.new_event_loop()
     asyncio.set_event_loop(loop)
@@ -73,6 +65,5 @@ try:
 except Exception as e:
     print(f"Startup room creation failed: {e}")
 
-# ---------- run ----------
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=5000, debug=True)
