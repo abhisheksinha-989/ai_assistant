@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"/>
+  <title>Voice AI</title>
+  <style>
+    body{font-family:system-ui;background:#111;color:#eee;text-align:center;margin-top:10vh}
+    button{font-size:1.2rem;padding:.6rem 1.4rem;margin:.5rem;border:none;border-radius:6px;cursor:pointer}
+    #startBtn{background:#0b6}
+    #muteBtn{background:#d44}
+    #status{margin-top:1rem;font-size:1rem;color:#aaa}
+    #debug{margin-top:2rem;font-size:0.85rem;color:#666;max-width:600px;margin-left:auto;margin-right:auto;text-align:left;padding:1rem;background:#1a1a1a;border-radius:8px;max-height:300px;overflow-y:auto}
+  </style>
+</head>
+<body>
+  <h1>Talk to the AI</h1>
+  <button id="startBtn">Connect</button>
+  <button id="muteBtn" disabled>Mute</button>
+  <button id="testAudioBtn">Test Audio</button>
+  <div id="status">Loading LiveKit...</div>
+  <div id="debug"></div>
+
+<script type="module">
+import * as LiveKit from 'https://cdn.jsdelivr.net/npm/livekit-client@2.7.2/+esm';
+
+// Make LiveKit available globally
+window.LiveKit = LiveKit;
+
+const startBtn = document.getElementById('startBtn');
+const muteBtn  = document.getElementById('muteBtn');
+const status   = document.getElementById('status');
+const debug    = document.getElementById('debug');
+let room;
+
+function log(msg) {
+  console.log(msg);
+  const time = new Date().toLocaleTimeString();
+  debug.innerHTML += `<div>${time}: ${msg}</div>`;
+  debug.scrollTop = debug.scrollHeight;
+}
+
+log("✓ LiveKit loaded successfully!");
+log(`LiveKit version: ${LiveKit.version || 'unknown'}`);
+status.textContent = 'Ready - Click Connect';
+
+startBtn.onclick = async () => {
+  try {
+    startBtn.disabled = true;
+    status.textContent = "Getting token…";
+    log("Requesting token from server...");
+    
+    const res = await fetch('/token', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({room: 'default'})
+    });
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      throw new Error(`Token request failed: ${res.status} - ${errorText}`);
+    }
+    
+    const {token} = await res.json();
+    log("✓ Token received successfully");
+
+    status.textContent = "Connecting to LiveKit…";
+    log("Creating LiveKit Room...");
+    
+    room = new LiveKit.Room({
+      audioCaptureDefaults: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true
+      },
+      disconnectOnPageLeave: false
+    });
+
+    // Add connection state listener
+    room.on('connectionStateChanged', (state) => {
+      log(`Connection state: ${state}`);
+    });
+
+    // Add connection quality listener
+    room.on('connectionQualityChanged', (quality, participant) => {
+      log(`Connection quality: ${quality} for ${participant.identity}`);
+    });
+
+    // Add disconnect listener
+    room.on('disconnected', (reason) => {
+      log(`Disconnected: ${reason}`);
+      status.textContent = `Disconnected: ${reason}`;
+      startBtn.disabled = false;
+      muteBtn.disabled = true;
+    });
+
+    // Add participant listeners
+    room.on('participantConnected', (participant) => {
+      log(`✓ Participant joined: ${participant.identity}`);
+    });
+
+    room.on('participantDisconnected', (participant) => {
+      log(`Participant left: ${participant.identity}`);
+    });
+
+    log("Connecting to room 'default'...");
+    await room.connect('{{ lk_url }}', token);
+    
+    log(`✓ Connected to room: ${room.name}`);
+    log(`Local participant: ${room.localParticipant.identity}`);
+    status.textContent = "Connected – enabling microphone…";
+
+    // Enable microphone
+    await room.localParticipant.setMicrophoneEnabled(true);
+    log("✓ Microphone enabled");
+    
+    status.textContent = "✓ Ready – speak now!";
+    muteBtn.disabled = false;
+
+    // Subscribe to remote audio tracks
+    room.on('trackSubscribed', (track, publication, participant) => {
+      log(`✓ Track subscribed: ${track.kind} from ${participant.identity}`);
+      if (track.kind === 'audio') {
+        const audio = track.attach();
+        audio.volume = 1.0; // Max volume
+        log(`Audio element created, volume: ${audio.volume}`);
+        audio.play()
+          .then(() => {
+            log("✓ Audio playing");
+            log(`Audio state: paused=${audio.paused}, muted=${audio.muted}, volume=${audio.volume}`);
+          })
+          .catch(e => log(`❌ Audio play error: ${e.message}`));
+        
+        // Monitor audio playback
+        audio.onplay = () => log("🔊 Audio started playing");
+        audio.onpause = () => log("⏸️ Audio paused");
+        audio.onerror = (e) => log(`❌ Audio error: ${e}`);
+      }
+    });
+
+    room.on('trackUnsubscribed', (track, publication, participant) => {
+      log(`Track unsubscribed: ${track.kind} from ${participant.identity}`);
+    });
+
+    room.on('trackMuted', (pub, participant) => {
+      log(`Track muted: ${pub.kind} from ${participant.identity}`);
+    });
+
+    room.on('trackUnmuted', (pub, participant) => {
+      log(`Track unmuted: ${pub.kind} from ${participant.identity}`);
+    });
+
+  } catch (error) {
+    console.error('Connection error:', error);
+    log(`❌ ERROR: ${error.message}`);
+    status.textContent = `Error: ${error.message}`;
+    startBtn.disabled = false;
+  }
+};
+
+muteBtn.onclick = () => {
+  if (!room) return;
+  const en = !room.localParticipant.isMicrophoneEnabled;
+  room.localParticipant.setMicrophoneEnabled(en);
+  muteBtn.textContent = en ? 'Mute' : 'Un-mute';
+  log(`Microphone ${en ? 'enabled' : 'disabled'}`);
+};
+</script>
+</body>
+</html>

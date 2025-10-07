@@ -1,0 +1,26 @@
+# LiveKit Server Configuration for Development
+port: 7880
+bind_addresses:
+  - "0.0.0.0"
+
+# RTC Configuration
+rtc:
+  port_range_start: 50000
+  port_range_end: 60000
+  use_external_ip: false
+
+# Room settings
+room:
+  auto_create: true
+  empty_timeout: 300
+  max_participants: 100
+
+# Development logging
+logging:
+  level: debug
+  sample: false
+
+# Development keys (change for production)
+keys:
+  livekit: devkey
+  livekit: secret
